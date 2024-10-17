@@ -1,3 +1,4 @@
+#pragma once
 #include "Singleton.hpp"
 #include "utilities.hpp"
 

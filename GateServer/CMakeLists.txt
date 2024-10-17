@@ -24,4 +24,4 @@ set_target_properties(gate_server PROPERTIES RUNTIME_OUTPUT_DIRECTORY
                                              ${CMAKE_CURRENT_SOURCE_DIR}/bin)
 
 target_link_libraries(gate_server jsoncpp ${_REFLECTION} ${_GRPC_GRPCPP}
-                      ${_PROTOBUF_LIBPROTOBUF} hiredis)
+                      ${_PROTOBUF_LIBPROTOBUF} hiredis mysqlcppconn)
