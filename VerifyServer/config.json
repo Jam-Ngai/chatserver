@@ -1,6 +1,6 @@
 {
   "email": {
-    "user": "secondtonone1@163.com",
+    "user": "jamngai@163.com",
     "pass": "FZjyBFhf2U46XVn4"
   },
 
@@ -12,7 +12,7 @@
 
   "redis": {
     "host": "127.0.0.1",
-    "port": 6380,
+    "port": 6379,
     "passwd": 123456
   }
 }

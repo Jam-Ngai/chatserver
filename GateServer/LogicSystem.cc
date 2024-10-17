@@ -44,7 +44,7 @@ LogicSystem::LogicSystem() {
   });
 
   RegisterPost(
-      "/get_varifycode", [](std::shared_ptr<HttpConnection> connection) {
+      "/get_verifycode", [](std::shared_ptr<HttpConnection> connection) {
         std::string body_str =
             beast::buffers_to_string(connection->request_.body().data());
         std::cout << "receive body is " << body_str << std::endl;
@@ -62,7 +62,7 @@ LogicSystem::LogicSystem() {
           return;
         }
 
-        if (src_root.isMember("email")) {
+        if (!src_root.isMember("email")) {
           std::cout << "Failed to parse JSON data!" << std::endl;
           root["error"] = ErrorCodes::Error_Json;
           std::string jsonstr = root.toStyledString();

@@ -60,8 +60,7 @@ std::string UrlDecode(const std::string& str) {
 
 }  // namespace
 
-HttpConnection::HttpConnection(tcp::socket socket)
-    : socket_(std::move(socket)) {}
+HttpConnection::HttpConnection(net::io_context& ioc) : socket_(ioc) {}
 
 void HttpConnection::Start() {
   auto self = shared_from_this();
@@ -121,10 +120,10 @@ void HttpConnection::HandleRequest() {
     }
   }
 
-  // 处理post请求
+  // 处理POST请求
   if (request_.method() == http::verb::post) {
-    bool success = LogicSystem::GetInstance()->HandlePost(
-        request_.target().data(), shared_from_this());
+    bool success = LogicSystem::GetInstance()->HandlePost(request_.target(),
+                                                          shared_from_this());
     if (!success) {
       response_.result(http::status::not_found);
       response_.set(http::field::content_type, "text/plain");
@@ -142,7 +141,7 @@ void HttpConnection::HandleRequest() {
 
 void HttpConnection::PreParseGetParam() {
   // 提取 URI
-  std::string uri = request_.target().data();
+  std::string uri = request_.target();
   // 查找查询字符串的开始位置（即 '?' 的位置）
   auto query_pos = uri.find('?');
   if (query_pos == std::string::npos) {

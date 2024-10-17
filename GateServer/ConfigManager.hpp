@@ -1,7 +1,6 @@
 #pragma once
 #include "utilities.hpp"
 
-
 struct SectionInfo {
   SectionInfo() {};
   SectionInfo(const SectionInfo& src);
@@ -13,12 +12,16 @@ struct SectionInfo {
 
 class ConfigManager {
  public:
-  ConfigManager();
-  ConfigManager(const ConfigManager& src);
+  static ConfigManager& GetInstance() {
+    static ConfigManager config_manager;
+    return config_manager;
+  }
+  ConfigManager(const ConfigManager& src) = delete;
   SectionInfo operator[](const std::string& section);
-  ConfigManager& operator=(const ConfigManager& src);
+  ConfigManager& operator=(const ConfigManager& src) = delete;
 
  private:
+  ConfigManager();
   // 存储section和key-value对的map
   std::unordered_map<std::string, SectionInfo> config_map_;
 };

@@ -5,7 +5,7 @@ SectionInfo::SectionInfo(const SectionInfo& src) {
 }
 
 SectionInfo& SectionInfo::operator=(const SectionInfo& src) {
-  if (&src == this) this->section_datas_ = src.section_datas_;
+  if (&src != this) this->section_datas_ = src.section_datas_;
   return *this;
 }
 
@@ -36,10 +36,10 @@ ConfigManager::ConfigManager() {
       const std::string& value = key_value_pair.second.get_value<std::string>();
       section_config[key] = value;
     }
-    SectionInfo sectionInfo;
-    sectionInfo.section_datas_ = section_config;
+    SectionInfo section_info;
+    section_info.section_datas_ = section_config;
     // 将section的key-value对保存到config_map中
-    config_map_[section_name] = sectionInfo;
+    config_map_[section_name] = section_info;
   }
 
   // 输出所有的section和key-value对
@@ -54,9 +54,9 @@ ConfigManager::ConfigManager() {
   }
 }
 
-ConfigManager::ConfigManager(const ConfigManager& src) {
-  this->config_map_ = src.config_map_;
-}
+// ConfigManager::ConfigManager(const ConfigManager& src) {
+//   this->config_map_ = src.config_map_;
+// }
 
 SectionInfo ConfigManager::operator[](const std::string& section) {
   if (config_map_.find(section) == config_map_.end()) {
@@ -65,7 +65,7 @@ SectionInfo ConfigManager::operator[](const std::string& section) {
   return config_map_[section];
 }
 
-ConfigManager& ConfigManager::operator=(const ConfigManager& src) {
-  if (&src == this) this->config_map_ = src.config_map_;
-  return *this;
-}
+// ConfigManager& ConfigManager::operator=(const ConfigManager& src) {
+//   if (&src != this) this->config_map_ = src.config_map_;
+//   return *this;
+// }

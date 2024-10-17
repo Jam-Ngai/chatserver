@@ -3,6 +3,7 @@ const message_proto = require("./proto");
 const const_module = require("./const");
 const { v4: uuidv4 } = require("uuid");
 const emailModule = require("./email");
+const config_module = require("./config");
 
 async function GetVerifyCode(call, callback) {
   console.log("email is ", call.request.email);
@@ -12,7 +13,7 @@ async function GetVerifyCode(call, callback) {
     let text_str = "您的验证码为" + uniqueId + "请三分钟内完成注册";
     //发送邮件
     let mailOptions = {
-      from: "secondtonone1@163.com",
+      from: config_module.email_user,
       to: call.request.email,
       subject: "验证码",
       text: text_str,

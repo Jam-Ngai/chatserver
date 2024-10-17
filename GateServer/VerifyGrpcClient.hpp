@@ -10,6 +10,24 @@ using message::VerifyRequst;
 using message::VerifyResponse;
 using message::VerifyService;
 
+class RpcConnectPool {
+ public:
+  RpcConnectPool(std::size_t size, std::string host, std::string port);
+  ~RpcConnectPool();
+  void Close();
+  std::unique_ptr<VerifyService::Stub> GetConnection();
+  void ReturnConnection(std::unique_ptr<VerifyService::Stub> context);
+
+ private:
+  std::atomic<bool> stop_;
+  std::size_t size_;
+  std::string host_;
+  std::string port_;
+  std::queue<std::unique_ptr<VerifyService::Stub>> connections_;
+  std::condition_variable cond_;
+  std::mutex mtx_;
+};
+
 class VerifyGrpcClient : public Singleton<VerifyGrpcClient> {
   friend class Singleton<VerifyGrpcClient>;
 
@@ -17,10 +35,6 @@ class VerifyGrpcClient : public Singleton<VerifyGrpcClient> {
   VerifyResponse GetVerifyCode(std::string email);
 
  private:
-  VerifyGrpcClient() {
-    std::shared_ptr<Channel> channel = grpc::CreateChannel(
-        "0.0.0.0:50051", grpc::InsecureChannelCredentials());
-    stub_ = VerifyService::NewStub(channel);
-  }
-  std::unique_ptr<VerifyService::Stub> stub_;
+  VerifyGrpcClient();
+  std::unique_ptr<RpcConnectPool> pool_;
 };
