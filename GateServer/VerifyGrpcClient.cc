@@ -61,7 +61,7 @@ VerifyGrpcClient::VerifyGrpcClient() {
 VerifyResponse VerifyGrpcClient::GetVerifyCode(std::string email) {
   ClientContext context;
   VerifyResponse reply;
-  VerifyRequst request;
+  VerifyRequest request;
   request.set_email(email);
   auto stub = pool_->GetConnection();
   Status state = stub->GetVerifyCode(&context, request, &reply);

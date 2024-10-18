@@ -4,6 +4,7 @@
 #include "MysqlManager.hpp"
 #include "RedisManager.hpp"
 #include "VerifyGrpcClient.hpp"
+#include "StatusGrpcClient.hpp"
 
 bool LogicSystem::HandleGet(std::string url,
                             std::shared_ptr<HttpConnection> connection) {
@@ -154,4 +155,126 @@ LogicSystem::LogicSystem() {
         std::string jsonstr = root.toStyledString();
         beast::ostream(connection->response_.body()) << jsonstr;
       });
+
+  RegisterPost("/reset_pwd", [](std::shared_ptr<HttpConnection> connection) {
+    auto body_str =
+        beast::buffers_to_string(connection->request_.body().data());
+    std::cout << "receive body is " << body_str << std::endl;
+    connection->response_.set(http::field::content_type, "text/json");
+    Json::Value root;
+    Json::Reader reader;
+    Json::Value src_root;
+    bool parse_success = reader.parse(body_str, src_root);
+    if (!parse_success) {
+      std::cout << "Failed to parse JSON data!" << std::endl;
+      root["error"] = ErrorCodes::Error_Json;
+      std::string jsonstr = root.toStyledString();
+      beast::ostream(connection->response_.body()) << jsonstr;
+      return;
+    }
+
+    std::string email = src_root["email"].asString();
+    std::string name = src_root["name"].asString();
+    std::string pwd = src_root["passwd"].asString();
+
+    // 获取redis中的验证码
+    std::string verify_code;
+    bool get_success =
+        RedisManager::GetInstance()->Get(kCodePrefix + email, verify_code);
+    if (!get_success) {
+      std::cout << " Verify code expired" << std::endl;
+      root["error"] = ErrorCodes::VerifyExpired;
+      std::string jsonstr = root.toStyledString();
+      beast::ostream(connection->response_.body()) << jsonstr;
+      return;
+    }
+
+    // 对比验证码是否一致
+    if (verify_code != src_root["verify_code"].asString()) {
+      std::cout << "Verrify code error" << std::endl;
+      root["error"] = ErrorCodes::VerifyCodeErr;
+      std::string jsonstr = root.toStyledString();
+      beast::ostream(connection->response_.body()) << jsonstr;
+      return;
+    }
+
+    // 查询数据库判断用户名和邮箱是否匹配
+    bool email_valid = MysqlManager::GetInstance()->CheckEmail(name, email);
+    if (!email_valid) {
+      std::cout << "Email invalid" << std::endl;
+      root["error"] = ErrorCodes::EmailNotMatch;
+      std::string jsonstr = root.toStyledString();
+      beast::ostream(connection->response_.body()) << jsonstr;
+      return;
+    }
+
+    // 更新密码
+    bool update_success = MysqlManager::GetInstance()->UpdatePwd(name, pwd);
+    if (!update_success) {
+      std::cout << " update pwd failed" << std::endl;
+      root["error"] = ErrorCodes::PasswdUpFailed;
+      std::string jsonstr = root.toStyledString();
+      beast::ostream(connection->response_.body()) << jsonstr;
+      return;
+    }
+    std::cout << "Succeed to update password" << pwd << std::endl;
+    root["error"] = 0;
+    root["email"] = email;
+    root["user"] = name;
+    root["passwd"] = pwd;
+    root["verifycode"] = src_root["verifycode"].asString();
+    std::string jsonstr = root.toStyledString();
+    beast::ostream(connection->response_.body()) << jsonstr;
+  });
+
+  //用户登录逻辑
+RegisterPost("/user_login", [](std::shared_ptr<HttpConnection> connection) {
+    auto body_str = boost::beast::buffers_to_string(connection->request_.body().data());
+    std::cout << "receive body is " << body_str << std::endl;
+    connection->response_.set(http::field::content_type, "text/json");
+    Json::Value root;
+    Json::Reader reader;
+    Json::Value src_root;
+    bool parse_success = reader.parse(body_str, src_root);
+    if (!parse_success) {
+        std::cout << "Failed to parse JSON data!" << std::endl;
+        root["error"] = ErrorCodes::Error_Json;
+        std::string jsonstr = root.toStyledString();
+        beast::ostream(connection->response_.body()) << jsonstr;
+        return true;
+    }
+
+    auto email = src_root["email"].asString();
+    auto pwd = src_root["passwd"].asString();
+    UserInfo userInfo;
+    //查询数据库判断用户名和密码是否匹配
+    bool pwd_valid = MysqlManager::GetInstance()->CheckPwd(email, pwd, userInfo);
+    if (!pwd_valid) {
+        std::cout << "User pwd not match" << std::endl;
+        root["error"] = ErrorCodes::PasswdInvalid;
+        std::string jsonstr = root.toStyledString();
+        beast::ostream(connection->response_.body()) << jsonstr;
+        return true;
+    }
+
+    //查询StatusServer找到合适的连接
+    auto reply = StatusGrpcClient::GetInstance()->GetChatServer(userInfo.uid);
+    if (reply.error()) {
+        std::cout << "Grpc get chat server failed, error is " << reply.error()<< std::endl;
+        root["error"] = ErrorCodes::RPCFailed;
+        std::string jsonstr = root.toStyledString();
+        beast::ostream(connection->response_.body()) << jsonstr;
+        return true;
+    }
+
+    std::cout << "Succeed to load userinfo uid is " << userInfo.uid << std::endl;
+    root["error"] = 0;
+    root["email"] = email;
+    root["uid"] = userInfo.uid;
+    root["token"] = reply.token();
+    root["host"] = reply.host();
+    std::string jsonstr = root.toStyledString();
+    beast::ostream(connection->response_.body()) << jsonstr;
+    return true;
+    });
 }

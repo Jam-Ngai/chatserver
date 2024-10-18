@@ -6,7 +6,7 @@
 using grpc::Channel;
 using grpc::ClientContext;
 using grpc::Status;
-using message::VerifyRequst;
+using message::VerifyRequest;
 using message::VerifyResponse;
 using message::VerifyService;
 

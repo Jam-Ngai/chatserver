@@ -30,6 +30,8 @@ MysqlPool::MysqlPool(const std::string& url, const std::string& user,
         std::this_thread::sleep_for(std::chrono::seconds(60));
       }
     });
+
+    std::cout << "Database " << schema << " connected!" << std::endl;
   } catch (sql::SQLException& e) {
     std::cout << "mysql pool init failed" << std::endl;
   }
@@ -128,23 +130,22 @@ int MysqlDao::RegisterUser(const std::string& name, const std::string& email,
       return -1;
     }
     // 准备调用存储过程
-    std::unique_ptr<sql::PreparedStatement> statement(
+    std::unique_ptr<sql::PreparedStatement> stmt(
         conn->conn_->prepareStatement("CALL reg_user(?,?,?,@result)"));
     // 设置输入参数
-    statement->setString(1, name);
-    statement->setString(2, email);
-    statement->setString(3, pwd);
+    stmt->setString(1, name);
+    stmt->setString(2, email);
+    stmt->setString(3, pwd);
 
     // prepareStatement不支持直接注册输出参数,需要使用会话变量或其他方法来获取输出参数的值
     // 执行存储过程
-    statement->execute();
+    stmt->execute();
     // 如果存储过程设置了会话变量或者有其他方式获取输出参数的值
     // 可以通过执行select来获取
     // 例如,存储过程设置了一个会话变量@result来存储输出结果,可以这样获取:
-    std::unique_ptr<sql::Statement> statemen_result(
-        conn->conn_->createStatement());
+    std::unique_ptr<sql::Statement> stmt_result(conn->conn_->createStatement());
     std::unique_ptr<sql::ResultSet> result(
-        statemen_result->executeQuery("SELECT @result AS result"));
+        stmt_result->executeQuery("SELECT @result AS result"));
     if (result->next()) {
       int uid = result->getInt("result");
       std::cout << "Result uid = " << uid << std::endl;
@@ -162,7 +163,87 @@ int MysqlDao::RegisterUser(const std::string& name, const std::string& email,
   }
 }
 
-// bool MysqlDao::CheckEmail(const std::string& name, const std::string email) {}
-// bool MysqlDao::UpdatePwd(const std::string& name, const std::string new_pwd) {}
-// bool MysqlDao::CheckPwd(const std::string& name, const std::string new_pwd,
-//                         UserInfo& user_info) {}
+bool MysqlDao::CheckEmail(const std::string& name, const std::string email) {
+  auto conn = pool_->GetConnection();
+  if (nullptr == conn) {
+    return false;
+  }
+  try {
+    std::unique_ptr<sql::PreparedStatement> pre_stmt(
+        conn->conn_->prepareStatement("SELECT email FROM user WHERE name =?"));
+    pre_stmt->setString(1, name);
+
+    std::unique_ptr<sql::ResultSet> res(pre_stmt->executeQuery());
+    while (res->next()) {
+      std::cout << "Check Email: " << res->getString("email") << std::endl;
+      if (email != res->getString("email")) {
+        pool_->ReturnConnection(std::move(conn));
+        return false;
+      }
+      pool_->ReturnConnection(std::move(conn));
+      return true;
+    }
+    return false;
+  } catch (sql::SQLException& e) {
+    pool_->ReturnConnection(std::move(conn));
+    std::cerr << "SQLException: " << e.what();
+    std::cerr << " (MySQL error code: " << e.getErrorCode();
+    std::cerr << ", SQLState: " << e.getSQLState() << " )" << std::endl;
+    return false;
+  }
+}
+
+bool MysqlDao::UpdatePwd(const std::string& name, const std::string new_pwd) {
+  auto conn = pool_->GetConnection();
+  if (nullptr == conn) {
+    return false;
+  }
+  try {
+    std::unique_ptr<sql::PreparedStatement> pre_stmt(
+        conn->conn_->prepareStatement(
+            "UPDATE user SET pwd = ? WHERE name = ?"));
+    pre_stmt->setString(1, new_pwd);
+    pre_stmt->setString(2, name);
+    int update_cnt = pre_stmt->executeUpdate();
+    std::cout << "Updated rows: " << update_cnt << std::endl;
+    pool_->ReturnConnection(std::move(conn));
+    return true;
+  } catch (sql::SQLException& e) {
+    pool_->ReturnConnection(std::move(conn));
+    std::cerr << "SQLException: " << e.what();
+    std::cerr << " (MySQL error code: " << e.getErrorCode();
+    std::cerr << ", SQLState: " << e.getSQLState() << " )" << std::endl;
+    return false;
+  }
+}
+
+bool MysqlDao::CheckPwd(const std::string& email, const std::string pwd,
+                        UserInfo& user_info) {
+  auto conn = pool_->GetConnection();
+  if (nullptr == conn) {
+    return false;
+  }
+  Defer defer([this, &conn]() { pool_->ReturnConnection(std::move(conn)); });
+  try {
+    std::unique_ptr<sql::PreparedStatement> pre_stmt(
+        conn->conn_->prepareStatement("SELECT * FROM user WHERE email=?"));
+    pre_stmt->setString(1, email);
+    std::unique_ptr<sql::ResultSet> res(pre_stmt->executeQuery());
+    if (res->next()) {
+      if (pwd != res->getString("pwd")) {
+        return false;
+      }
+    }
+    user_info.email = res->getString("email");
+    user_info.name = res->getString("name");
+    user_info.pwd = res->getString("pwd");
+    user_info.uid = res->getInt("uid");
+    return true;
+
+  } catch (sql::SQLException& e) {
+    std::cerr << "SQLException: " << e.what();
+    std::cerr << " (MySQL error code: " << e.getErrorCode();
+    std::cerr << ", SQLState: " << e.getSQLState() << " )" << std::endl;
+    return false;
+  }
+}

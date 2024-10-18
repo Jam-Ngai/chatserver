@@ -23,9 +23,9 @@ RedisConnectPool::RedisConnectPool(std::size_t size, const char *host,
       freeReplyObject(reply);
       std::cout << "Authenticate succeed!" << std::endl;
     }
-    std::cout << "Redis connection " << i + 1 << " connected" << std::endl;
     connections_.push(context);
   }
+  std::cout << "Redis connection connected" << std::endl;
 }
 
 RedisConnectPool::~RedisConnectPool() {

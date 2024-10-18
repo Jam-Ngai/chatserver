@@ -49,10 +49,10 @@ class MysqlDao {
   ~MysqlDao();
   int RegisterUser(const std::string& name, const std::string& email,
                    const std::string& pwd);
-  // bool CheckEmail(const std::string& name, const std::string email);
-  // bool UpdatePwd(const std::string& name, const std::string new_pwd);
-  // bool CheckPwd(const std::string& name, const std::string new_pwd,
-  //               UserInfo& user_info);
+  bool CheckEmail(const std::string& name, const std::string email);
+  bool UpdatePwd(const std::string& name, const std::string new_pwd);
+  bool CheckPwd(const std::string& email, const std::string pwd,
+                UserInfo& user_info);
 
  private:
   std::unique_ptr<MysqlPool> pool_;
