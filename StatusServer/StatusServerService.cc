@@ -20,21 +20,30 @@ void StatusServerService::InsertToken(int uid, std::string token) {
 ChatServer StatusServerService::LeastConnection() {
   std::lock_guard<std::mutex> lock(server_mtx_);
   auto min_server = servers_.begin()->second;
+  int min_count;
+  std::string count_str =
+      RedisManager::GetInstance()->HGet(kLoginCount, min_server.name_);
+  if (count_str.empty()) {
+    min_count = INT_MAX;
+  } else {
+    min_count = std::atoi(count_str.c_str());
+  }
+
   for (const auto& server : servers_) {
-    if (server.second.conn_cnt_ < min_server.conn_cnt_) {
+    count_str =
+        RedisManager::GetInstance()->HGet(kLoginCount,server.second.name_);
+    if (count_str.empty()) continue;
+    if (std::atoi(count_str.c_str()) < min_count) {
       min_server = server.second;
     }
   }
   return min_server;
 }
 
-ChatServer::ChatServer() : host_(""), port_(""), name_(""), conn_cnt_(0) {}
+ChatServer::ChatServer() : host_(""), port_(""), name_("") {}
 
 ChatServer::ChatServer(const ChatServer& cs)
-    : host_(cs.host_),
-      port_(cs.port_),
-      name_(cs.name_),
-      conn_cnt_(cs.conn_cnt_) {}
+    : host_(cs.host_), port_(cs.port_), name_(cs.name_) {}
 
 ChatServer& ChatServer::operator=(const ChatServer& cs) {
   if (&cs == this) {
@@ -44,14 +53,13 @@ ChatServer& ChatServer::operator=(const ChatServer& cs) {
   host_ = cs.host_;
   name_ = cs.name_;
   port_ = cs.port_;
-  conn_cnt_ = cs.conn_cnt_;
   return *this;
 }
 
 StatusServerService::StatusServerService() {
   auto& config_manager = ConfigManager::GetInstance();
 
-  std::string server_list = config_manager["chatservers"]["name"];
+  std::string server_list = config_manager["ChatServers"]["Name"];
   std::istringstream is(server_list);
   std::string word;
   while (std::getline(is, word, ',')) {

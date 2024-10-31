@@ -2,13 +2,13 @@
 file(GLOB SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
 file(GLOB PBSOURCES ${CMAKE_CURRENT_SOURCE_DIR}/*.cc)
 
-add_executable(status_server ${SOURCES} ${PBSOURCES})
+add_executable(chat_server2 ${SOURCES} ${PBSOURCES})
 
-set_target_properties(status_server PROPERTIES RUNTIME_OUTPUT_DIRECTORY
-                                               ${CMAKE_CURRENT_SOURCE_DIR}/bin)
+set_target_properties(chat_server2 PROPERTIES RUNTIME_OUTPUT_DIRECTORY
+                                              ${CMAKE_CURRENT_SOURCE_DIR}/bin)
 
 target_link_libraries(
-  status_server
+  chat_server2
   jsoncpp
   ${_REFLECTION}
   ${_GRPC_GRPCPP}

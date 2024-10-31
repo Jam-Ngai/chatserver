@@ -21,7 +21,6 @@ int main() {
     builder.RegisterService(&service);
     std::unique_ptr<grpc::Server> grpc_server(builder.BuildAndStart());
     std::thread grpc_thread([&grpc_server]() { grpc_server->Wait(); });
-
     boost::asio::io_context ioc;
     boost::asio::signal_set signals(ioc, SIGINT, SIGTERM);
     signals.async_wait(

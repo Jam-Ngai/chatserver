@@ -22,7 +22,6 @@ class ChatServer {
   std::string host_;
   std::string port_;
   std::string name_;
-  std::size_t conn_cnt_;
 };
 
 class StatusServerService final : public message::StatusService::Service {
