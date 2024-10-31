@@ -12,6 +12,7 @@
 #include <cassert>
 #include <chrono>
 #include <condition_variable>
+#include <csignal>
 #include <exception>
 #include <filesystem>
 #include <functional>
@@ -58,7 +59,6 @@ enum ErrorCodes {
 };
 
 const std::string kCodePrefix = "code_";
-
 
 class Defer {
  public:

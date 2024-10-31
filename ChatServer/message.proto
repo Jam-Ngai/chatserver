@@ -1,0 +1,121 @@
+syntax = "proto3";
+
+package message;
+
+service VerifyService {
+  rpc GetVerifyCode (VerifyRequest) returns (VerifyResponse) {}
+}
+
+message VerifyRequest {
+  string email = 1;
+}
+
+message VerifyResponse {
+  int32 error = 1;
+  string email = 2;
+  string code = 3;
+}
+
+message GetChatServerRequest {
+  int32 uid = 1;
+}
+
+message GetChatServerResponse {
+  int32 error = 1;
+  string host = 2;
+  string port = 3;
+  string token = 4;
+}
+
+message LoginRequest{
+	int32 uid = 1;
+	string token= 2;
+}
+
+message LoginResponse {
+	int32 error = 1;
+	int32 uid = 2;
+	string token = 3;
+}
+
+service StatusService {
+	rpc GetChatServer (GetChatServerRequest) returns (GetChatServerResponse) {}
+	rpc Login(LoginRequest) returns(LoginResponse);
+}
+
+message AddFriendRequest {
+	int32  applyuid = 1;
+	string name = 2;
+	string desc = 3;
+	string icon = 4;
+	string nick = 5;
+	int32  sex = 6;
+	int32  touid = 7;
+}
+
+message AddFriendResponse {
+	int32 error = 1;
+	int32 applyuid = 2;
+	int32 touid = 3;
+}
+
+message ReplyFriendRequest {
+	int32 rplyuid = 1;
+	bool  agree = 2;
+	int32 touid = 3;
+}
+
+message ReplyFriendResponse {
+	int32 error = 1;
+	int32 rplyuid = 2;
+	int32 touid = 3;
+}
+
+message SendChatMsgRequest{
+		int32 fromuid = 1;
+		int32 touid = 2;
+		string message = 3;
+}
+
+message SendChatMsgResponse{
+		int32 error = 1;
+		int32 fromuid = 2;
+		int32 touid = 3;
+}
+
+message AuthFriendRequest{
+	int32 fromuid = 1;
+	int32 touid = 2;
+}
+
+message AuthFriendResponse{
+	int32 error = 1;
+	int32 fromuid = 2;
+	int32 touid = 3;
+}
+
+message TextChatMsgRequest {
+	int32 fromuid = 1;
+    int32 touid = 2;
+	repeated TextChatData textmsgs = 3;
+}
+
+message TextChatData{
+	string msgid = 1;
+	string msgcontent = 2;
+}
+
+message TextChatMsgResponse {
+	int32 error = 1;
+	int32 fromuid = 2;
+	int32 touid = 3; 
+	repeated TextChatData textmsgs = 4;
+}
+
+service ChatService {
+	rpc NotifyAddFriend(AddFriendRequest) returns (AddFriendResponse) {}
+	rpc ReplyAddFriend(ReplyFriendRequest) returns (ReplyFriendResponse) {}
+	rpc SendChatMsg(SendChatMsgRequest) returns (SendChatMsgResponse) {}
+	rpc NotifyAuthFriend(AuthFriendRequest) returns (AuthFriendResponse) {}
+	rpc NotifyTextChatMsg(TextChatMsgRequest) returns (TextChatMsgResponse){}
+}

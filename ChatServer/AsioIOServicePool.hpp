@@ -18,8 +18,7 @@ class AsioIOServicePool : public Singleton<AsioIOServicePool> {
   void Stop();
 
  private:
-  AsioIOServicePool(
-      std::size_t size = 2 /*std::thread::hardware_concurrency()*/);
+  AsioIOServicePool(std::size_t size = std::thread::hardware_concurrency());
   std::vector<IOService> ioservices_;
   std::vector<WorkPtr> works_;
   std::vector<std::thread> threads_;

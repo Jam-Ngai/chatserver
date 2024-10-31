@@ -9,7 +9,7 @@ int main(int argc, char* argv[]) {
     uint16_t gate_port = stoi(config_manager["GateServer"]["Port"]);
     net::io_context ioc{1};
     boost::asio::signal_set signals(ioc, SIGINT, SIGTERM);
-    signals.async_wait([&](boost::system::error_code ec, int) {
+    signals.async_wait([&](const boost::system::error_code &ec, int) {
       if (ec) {
         return;
       }

@@ -1,6 +1,7 @@
 #include "StatusServerService.hpp"
 
 #include "ConfigManager.hpp"
+#include "RedisManager.hpp"
 
 namespace {
 std::string GenerateUniqueString() {
@@ -11,49 +12,69 @@ std::string GenerateUniqueString() {
 }  // namespace
 
 void StatusServerService::InsertToken(int uid, std::string token) {
-  std::lock_guard<std::mutex> lock(token_mtx_);
-  tokens_[uid] = token;
+  std::string uid_str = std::to_string(uid);
+  std::string token_key = kUserTokenPrefix + uid_str;
+  RedisManager::GetInstance()->Set(token_key, token);
 }
 
 ChatServer StatusServerService::LeastConnection() {
   std::lock_guard<std::mutex> lock(server_mtx_);
   auto min_server = servers_.begin()->second;
   for (const auto& server : servers_) {
-    if (server.second.count < min_server.count) {
+    if (server.second.conn_cnt_ < min_server.conn_cnt_) {
       min_server = server.second;
     }
   }
   return min_server;
 }
 
+ChatServer::ChatServer() : host_(""), port_(""), name_(""), conn_cnt_(0) {}
+
+ChatServer::ChatServer(const ChatServer& cs)
+    : host_(cs.host_),
+      port_(cs.port_),
+      name_(cs.name_),
+      conn_cnt_(cs.conn_cnt_) {}
+
+ChatServer& ChatServer::operator=(const ChatServer& cs) {
+  if (&cs == this) {
+    return *this;
+  }
+
+  host_ = cs.host_;
+  name_ = cs.name_;
+  port_ = cs.port_;
+  conn_cnt_ = cs.conn_cnt_;
+  return *this;
+}
+
 StatusServerService::StatusServerService() {
   auto& config_manager = ConfigManager::GetInstance();
-  ChatServer server;
-  server.port = config_manager["ChatServer1"]["Port"];
-  server.host = config_manager["ChatServer1"]["Host"];
-  server.name = config_manager["ChatServer1"]["Name"];
-  servers_["name"] = server;
 
-  server.port = config_manager["ChatServer2"]["Port"];
-  server.host = config_manager["ChatServer2"]["Host"];
-  server.name = config_manager["ChatServer2"]["Name"];
-  servers_["name"] = server;
+  std::string server_list = config_manager["chatservers"]["name"];
+  std::istringstream is(server_list);
+  std::string word;
+  while (std::getline(is, word, ',')) {
+    if (config_manager[word]["Name"].empty()) continue;
+    ChatServer server;
+    server.host_ = config_manager[word]["Host"];
+    server.port_ = config_manager[word]["Port"];
+    server.name_ = config_manager[word]["Name"];
+    servers_[server.name_] = server;
+  }
 }
 
 StatusServerService::~StatusServerService() {}
 
 Status StatusServerService::GetChatServer(ServerContext* context,
-                                    const GetChatServerRequest* request,
-                                    GetChatServerResponse* response) {
+                                          const GetChatServerRequest* request,
+                                          GetChatServerResponse* response) {
   std::string prefix("Status Server has received: ");
   const ChatServer& server = LeastConnection();
-  response->set_host(server.host);
-  response->set_port(server.port);
+  response->set_host(server.host_);
+  response->set_port(server.port_);
   response->set_error(ErrorCodes::Success);
   response->set_token(GenerateUniqueString());
   InsertToken(request->uid(), response->token());
   return Status::OK;
 }
-
-Status StatusServerService::Login(ServerContext* context, const LoginRequest* request,
-                            LoginResponse* response) {}

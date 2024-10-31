@@ -14,11 +14,15 @@ using message::LoginRequest;
 using message::LoginResponse;
 using message::StatusService;
 
-struct ChatServer {
-  std::string host;
-  std::string port;
-  std::string name;
-  std::size_t count;
+class ChatServer {
+ public:
+  ChatServer();
+  ChatServer(const ChatServer&);
+  ChatServer& operator=(const ChatServer&);
+  std::string host_;
+  std::string port_;
+  std::string name_;
+  std::size_t conn_cnt_;
 };
 
 class StatusServerService final : public message::StatusService::Service {
@@ -28,14 +32,10 @@ class StatusServerService final : public message::StatusService::Service {
   Status GetChatServer(ServerContext* context,
                        const GetChatServerRequest* request,
                        GetChatServerResponse* response) override;
-  Status Login(ServerContext* context, const LoginRequest* request,
-               LoginResponse* response) override;
 
  private:
   void InsertToken(int uid, std::string token);
   ChatServer LeastConnection();
   std::unordered_map<std::string, ChatServer> servers_;
   std::mutex server_mtx_;
-  std::unordered_map<int, std::string> tokens_;
-  std::mutex token_mtx_;
 };

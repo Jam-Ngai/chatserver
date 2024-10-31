@@ -20,14 +20,13 @@ void RunServer() {
   // 创建signal_set用于捕获SIGINT
   boost::asio::signal_set signals(ioc, SIGINT, SIGTERM);
   // 设置异步等待SIGINT信号
-  signals.async_wait(
-      [&](const boost::system::error_code& error, int signal_number) {
-        if (!error) {
-          std::cout << "Shutting down server..." << std::endl;
-          server->Shutdown();
-          ioc.stop();
-        }
-      });
+  signals.async_wait([&](boost::system::error_code error, int) {
+    if (!error) {
+      std::cout << "Shutting down server..." << std::endl;
+      server->Shutdown();
+      ioc.stop();
+    }
+  });
   // 在单独的线程中运行io_context
   std::thread([&]() { ioc.run(); }).detach();
   // 等待服务器关闭
